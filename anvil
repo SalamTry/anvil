@@ -37,6 +37,18 @@ INPUT_FILE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    -h|--help)
+      echo "anvil — forge digital knowledge into printed study pages"
+      echo ""
+      echo "Usage: anvil [options] <file.md>"
+      echo "       echo \"markdown\" | anvil [options]"
+      echo ""
+      echo "Options:"
+      echo "  --paper=SIZE   Paper size: a5 (default), a6, a4, letter"
+      echo "  --preview      Open PDF after generating"
+      echo "  --no-print     Skip sending to printer"
+      echo "  -h, --help     Show this help"
+      exit 0 ;;
     --paper=*) PAPER="${1#--paper=}"; shift ;;
     --paper)   PAPER="$2"; shift 2 ;;
     --a6) PAPER="a6"; shift ;;
