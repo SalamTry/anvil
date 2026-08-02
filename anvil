@@ -1,0 +1,138 @@
+#!/bin/zsh
+# anvil — forge digital knowledge into printed study pages
+# Usage: anvil [--paper=a5|a6|a4|letter] [--preview] [--no-print] <file.md>
+#        echo "markdown" | anvil [--paper=a5|a6|a4|letter] [--preview] [--no-print]
+
+set -euo pipefail
+
+# --- Config ---
+typeset -A COLORS=(
+  [gridline]=C0D0CC
+  [gridmajor]=8FB5AC
+  [accent]=0D5E4F
+  [muted]=8C8C8C
+  [body]=333333
+)
+FONT_MAIN="Avenir Next"
+FONT_MONO="Menlo"
+
+# --- Platform ---
+case "$(uname -s)" in
+  Darwin) TEX_PATH="/Library/TeX/texbin"; OPEN_CMD="open" ;;
+  Linux)  TEX_PATH="/usr/local/texlive/2024/bin/x86_64-linux"; OPEN_CMD="xdg-open" ;;
+  *)      TEX_PATH=""; OPEN_CMD="open" ;;
+esac
+
+# --- Paths ---
+TEMPLATE_DIR="$HOME/anvil"
+TEMPLATE="$TEMPLATE_DIR/sketch-page.tex"
+COUNTER_FILE="$TEMPLATE_DIR/.entry-counter"
+OUTPUT_DIR="$HOME/anvil/output"
+mkdir -p "$OUTPUT_DIR"
+
+PAPER="a5"
+PREVIEW=false
+NO_PRINT=false
+INPUT_FILE=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --paper=*) PAPER="${1#--paper=}"; shift ;;
+    --paper)   PAPER="$2"; shift 2 ;;
+    --a6) PAPER="a6"; shift ;;
+    --a5) PAPER="a5"; shift ;;
+    --preview) PREVIEW=true; shift ;;
+    --no-print) NO_PRINT=true; shift ;;
+    *) INPUT_FILE="$1"; shift ;;
+  esac
+done
+
+# --- Paper presets ---
+case "$PAPER" in
+  a5)     PAPER_LATEX="a5paper";     PAPER_MARGIN="10mm"; PAPER_TOP="10mm"; PAPER_BOTTOM="10mm"; PAPER_MEDIA="a5" ;;
+  a6)     PAPER_LATEX="a6paper";     PAPER_MARGIN="5mm";  PAPER_TOP="10mm"; PAPER_BOTTOM="5mm";  PAPER_MEDIA="a6" ;;
+  a4)     PAPER_LATEX="a4paper";     PAPER_MARGIN="15mm"; PAPER_TOP="15mm"; PAPER_BOTTOM="10mm"; PAPER_MEDIA="a4" ;;
+  letter) PAPER_LATEX="letterpaper"; PAPER_MARGIN="15mm"; PAPER_TOP="15mm"; PAPER_BOTTOM="10mm"; PAPER_MEDIA="letter" ;;
+  *) echo "Error: unknown paper size '$PAPER'. Valid: a5, a6, a4, letter" >&2; exit 1 ;;
+esac
+
+# Entry counter
+if [[ -f "$COUNTER_FILE" ]]; then
+  ENTRY_NUM=$(($(cat "$COUNTER_FILE") + 1))
+else
+  ENTRY_NUM=1
+fi
+echo "$ENTRY_NUM" > "$COUNTER_FILE"
+ENTRY_PADDED=$(printf "%03d" "$ENTRY_NUM")
+
+DATE=$(date "+%Y-%m-%d")
+
+# Read input
+if [[ -n "$INPUT_FILE" && -f "$INPUT_FILE" ]]; then
+  MARKDOWN=$(cat "$INPUT_FILE")
+  BASENAME=$(basename "$INPUT_FILE" .md)
+else
+  MARKDOWN=$(cat -)
+  BASENAME="note"
+fi
+
+# Extract title and strip first H1 in one pass
+TITLE_FILE=$(mktemp)
+STRIPPED=$(printf '%s\n' "$MARKDOWN" | awk -v tf="$TITLE_FILE" '
+  /^# / && !found { print substr($0, 3) > tf; found=1; next }
+  { print }
+')
+if [[ -s "$TITLE_FILE" ]]; then
+  TITLE=$(cat "$TITLE_FILE")
+else
+  TITLE="$BASENAME"
+fi
+rm -f "$TITLE_FILE"
+
+OUTPUT_NAME="${ENTRY_PADDED}-${BASENAME}-${DATE}"
+OUTPUT_PDF="$OUTPUT_DIR/${OUTPUT_NAME}.pdf"
+
+# Build PDF with pandoc + lualatex
+[[ -n "$TEX_PATH" ]] && export PATH="$TEX_PATH:$PATH"
+
+pandoc \
+  -f markdown+hard_line_breaks \
+  --template="$TEMPLATE" \
+  --pdf-engine=lualatex \
+  --lua-filter="$TEMPLATE_DIR/grid-tables.lua" \
+  -V title="$TITLE" \
+  -V date="$DATE" \
+  -V entry-number="$ENTRY_PADDED" \
+  -V color-gridline="${COLORS[gridline]}" \
+  -V color-gridmajor="${COLORS[gridmajor]}" \
+  -V color-accent="${COLORS[accent]}" \
+  -V color-muted="${COLORS[muted]}" \
+  -V color-body="${COLORS[body]}" \
+  -V font-main="$FONT_MAIN" \
+  -V font-mono="$FONT_MONO" \
+  -V paper-size="$PAPER_LATEX" \
+  -V paper-margin="$PAPER_MARGIN" \
+  -V paper-top="$PAPER_TOP" \
+  -V paper-bottom="$PAPER_BOTTOM" \
+  -o "$OUTPUT_PDF" \
+  <<< "$STRIPPED"
+
+echo "✦ Generated: $OUTPUT_PDF"
+echo "  Paper: $(echo $PAPER | tr '[:lower:]' '[:upper:]') | Entry: #${ENTRY_PADDED} | Date: $DATE"
+
+# Preview
+if $PREVIEW; then
+  $OPEN_CMD "$OUTPUT_PDF"
+fi
+
+# Print
+if ! $NO_PRINT; then
+  PRINTER=$(lpstat -d 2>/dev/null | sed 's/.*: //' || true)
+  if [[ -n "$PRINTER" ]]; then
+    lp -d "$PRINTER" -o media="${PAPER_MEDIA}" "$OUTPUT_PDF"
+    echo "  Sent to printer: $PRINTER"
+  else
+    echo "  ⚠ No default printer set. Use: lpadmin -d <printer-name>"
+    echo "  PDF saved — print manually or set up printer first."
+  fi
+fi

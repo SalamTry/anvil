@@ -1,0 +1,10 @@
+output/
+.entry-counter
+test/results/
+test/baselines/
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+.DS_Store
