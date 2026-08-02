@@ -7,13 +7,14 @@ set -euo pipefail
 
 # --- Config ---
 typeset -A COLORS=(
-  [gridline]=C0D0CC
-  [gridmajor]=8FB5AC
-  [accent]=0D5E4F
-  [muted]=8C8C8C
+  [gridline]=CCCCCC
+  [gridmajor]=999999
+  [accent]=555555
+  [muted]=888888
   [body]=333333
 )
-FONT_MAIN="Avenir Next"
+FONT_MAIN="Indie Flower"
+FONT_BOLD=""
 FONT_MONO="Menlo"
 
 # --- Platform ---
@@ -121,6 +122,7 @@ pandoc \
   -V color-muted="${COLORS[muted]}" \
   -V color-body="${COLORS[body]}" \
   -V font-main="$FONT_MAIN" \
+  ${FONT_BOLD:+-V font-bold="$FONT_BOLD"} \
   -V font-mono="$FONT_MONO" \
   -V paper-size="$PAPER_LATEX" \
   -V paper-margin="$PAPER_MARGIN" \

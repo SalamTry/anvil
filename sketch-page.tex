@@ -10,11 +10,15 @@
 
 % --- Fonts (LuaTeX) ---
 \usepackage{fontspec}
+$if(font-bold)$
 \setmainfont{$font-main$}[
   UprightFont = * Regular,
-  BoldFont = * Demi Bold,
+  BoldFont = * $font-bold$,
   ItalicFont = * Italic,
 ]
+$else$
+\setmainfont{$font-main$}[AutoFakeBold=2.5, AutoFakeSlant=0.2]
+$endif$
 \setmonofont{$font-mono$}[Scale=0.80]
 
 % --- Packages ---
@@ -28,6 +32,7 @@
 \usepackage{tabularx}
 \usepackage{colortbl}
 \usepackage{eso-pic}
+\usepackage{amssymb}
 
 % --- Colors ---
 \definecolor{gridline}{HTML}{$color-gridline$}
