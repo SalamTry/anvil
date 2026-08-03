@@ -287,6 +287,45 @@ should_run "grid-headings" && {
   fi
 }
 
+should_run "d2-diagram" && {
+  echo "[18] D2 sketch-mode diagram"
+  if command -v d2 >/dev/null 2>&1 && command -v rsvg-convert >/dev/null 2>&1; then
+    png=$(render "$FIXTURES/d2-diagram.md" "d2-diagram")
+    if [[ -f "$png" ]]; then
+      pass "D2 diagram PDF rendered"
+      local pdf="$PRINT_DIR/output/001-d2-diagram-$(date +%Y-%m-%d).pdf"
+      local page_count=$(pdfinfo "$pdf" 2>/dev/null | awk '/Pages:/{print $2}')
+      if [[ "$page_count" == "1" ]]; then
+        pass "D2 diagram fits on one page"
+      else
+        fail "D2 diagram overflows to $page_count pages"
+      fi
+    else
+      fail "D2 diagram PDF not rendered"
+    fi
+  else
+    pass "D2 diagram (skipped — d2 or rsvg-convert not installed)"
+  fi
+}
+
+should_run "d2-error" && {
+  echo "[19] D2 error handling — bad syntax"
+  if command -v d2 >/dev/null 2>&1; then
+    cat > "$FIXTURES/d2-bad.md" <<'FIXTURE'
+# Bad D2
+
+```d2
+this is not valid d2 {{{
+```
+FIXTURE
+    png=$(render "$FIXTURES/d2-bad.md" "d2-bad")
+    [[ -f "$png" ]] && pass "bad D2 still produces PDF (with fallback)" || fail "bad D2 crashed pipeline"
+    rm -f "$FIXTURES/d2-bad.md"
+  else
+    pass "D2 error handling (skipped — d2 not installed)"
+  fi
+}
+
 # ─── Results ───
 
 echo ""
