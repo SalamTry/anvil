@@ -174,7 +174,7 @@ png=$(render "$FIXTURES/rich-table.md" "rich-table")
 visual_diff "rich-table" "$png"
 
 echo "[8] Color contract"
-filter_colors=$(grep -oE '\\color\{[a-zA-Z]+\}' "$PRINT_DIR/grid-tables.lua" 2>/dev/null | sed 's/\\color{//;s/}//' | sort -u)
+filter_colors=$(grep -oE '\\color\{[a-zA-Z]+\}' "$PRINT_DIR/anvil-filter.lua" 2>/dev/null | sed 's/\\color{//;s/}//' | sort -u)
 template_colors=$(grep -oE 'definecolor\{[a-zA-Z]+\}' "$PRINT_DIR/sketch-page.tex" 2>/dev/null | sed 's/definecolor{//;s/}//' | sort -u)
 if [[ -z "$filter_colors" ]]; then
   pass "no colors in filter to check"
@@ -200,16 +200,19 @@ for v in ${(f)script_vars}; do
 done
 
 echo "[10] Variable contract: template -> deepprint"
-# Every $variable$ in the template should be passed via -V by deepprint
+# Every $variable$ in the template should be passed via -V by deepprint,
+# set by the Lua filter via metadata, or guarded by $if()$
 # Exclude pandoc builtins (body) and template keywords (if/else/endif/for/endfor/sep)
 template_vars=$(grep -oE '\$[a-zA-Z_-]+\$' "$PRINT_DIR/sketch-page.tex" 2>/dev/null | sed 's/\$//g' | grep -vE '^(body|if|else|endif|for|endfor|sep)$' | sort -u)
 for v in ${(f)template_vars}; do
   if grep -q "\-V ${v}=" "$DEEPPRINT" 2>/dev/null || grep -q "\-V ${v} " "$DEEPPRINT" 2>/dev/null; then
     pass "template var '$v' provided by script"
+  elif grep -q "meta\.${v}\b\|meta\[.${v}.\]" "$PRINT_DIR/anvil-filter.lua" 2>/dev/null; then
+    pass "template var '$v' provided by filter metadata"
   elif grep -qF "\$if(${v})\$" "$PRINT_DIR/sketch-page.tex" 2>/dev/null; then
     pass "template var '$v' optional (guarded by \$if\$)"
   else
-    fail "template var '$v' NOT provided by script"
+    fail "template var '$v' NOT provided by script or filter"
   fi
 done
 

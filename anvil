@@ -89,19 +89,6 @@ else
   BASENAME="note"
 fi
 
-# Extract title and strip first H1 in one pass
-TITLE_FILE=$(mktemp)
-STRIPPED=$(printf '%s\n' "$MARKDOWN" | awk -v tf="$TITLE_FILE" '
-  /^# / && !found { print substr($0, 3) > tf; found=1; next }
-  { print }
-')
-if [[ -s "$TITLE_FILE" ]]; then
-  TITLE=$(cat "$TITLE_FILE")
-else
-  TITLE="$BASENAME"
-fi
-rm -f "$TITLE_FILE"
-
 OUTPUT_NAME="${ENTRY_PADDED}-${BASENAME}-${DATE}"
 OUTPUT_PDF="$OUTPUT_DIR/${OUTPUT_NAME}.pdf"
 
@@ -112,8 +99,8 @@ pandoc \
   -f markdown+hard_line_breaks \
   --template="$TEMPLATE" \
   --pdf-engine=lualatex \
-  --lua-filter="$TEMPLATE_DIR/grid-tables.lua" \
-  -V title="$TITLE" \
+  --lua-filter="$TEMPLATE_DIR/anvil-filter.lua" \
+  -M source-file="$BASENAME" \
   -V date="$DATE" \
   -V entry-number="$ENTRY_PADDED" \
   -V color-gridline="${COLORS[gridline]}" \
@@ -129,7 +116,7 @@ pandoc \
   -V paper-top="$PAPER_TOP" \
   -V paper-bottom="$PAPER_BOTTOM" \
   -o "$OUTPUT_PDF" \
-  <<< "$STRIPPED"
+  <<< "$MARKDOWN"
 
 echo "✦ Generated: $OUTPUT_PDF"
 echo "  Paper: $(echo $PAPER | tr '[:lower:]' '[:upper:]') | Entry: #${ENTRY_PADDED} | Date: $DATE"

@@ -1,3 +1,18 @@
+function Pandoc(doc)
+  for i, block in ipairs(doc.blocks) do
+    if block.t == "Header" and block.level == 1 then
+      doc.meta.title = block.content
+      table.remove(doc.blocks, i)
+      return doc
+    end
+  end
+  if not doc.meta.title and doc.meta["source-file"] then
+    local name = pandoc.utils.stringify(doc.meta["source-file"])
+    doc.meta.title = {pandoc.Str(name:gsub("%.md$", ""))}
+  end
+  return doc
+end
+
 local function cell_to_latex(contents)
   if #contents == 0 then return "" end
   local latex = pandoc.write(pandoc.Pandoc(contents), "latex")
