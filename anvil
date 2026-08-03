@@ -47,6 +47,10 @@ while [[ $# -gt 0 ]]; do
       echo "  --preview       Open PDF after generating"
       echo "  --no-print      Skip sending to printer"
       echo "  -h, --help      Show this help"
+      echo ""
+      echo "Diagrams:"
+      echo "  Use \`\`\`d2 fenced code blocks in markdown for sketch-style diagrams."
+      echo "  Requires: brew install d2 librsvg"
       exit 0 ;;
     --paper=*) PAPER="${1#--paper=}"; shift ;;
     --paper)   PAPER="$2"; shift 2 ;;
