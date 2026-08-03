@@ -5,7 +5,11 @@
 
 set -euo pipefail
 
-# --- Config ---
+# ══════════════════════════════════════════════════════════════
+# Config — resolve everything needed to describe the rendering job
+# ══════════════════════════════════════════════════════════════
+
+# Colors & fonts
 typeset -A COLORS=(
   [gridline]=CCCCCC
   [gridmajor]=999999
@@ -17,20 +21,21 @@ FONT_MAIN="Indie Flower"
 FONT_BOLD=""
 FONT_MONO="Menlo"
 
-# --- Platform ---
+# Platform
 case "$(uname -s)" in
   Darwin) TEX_PATH="/Library/TeX/texbin"; OPEN_CMD="open" ;;
   Linux)  TEX_PATH="/usr/local/texlive/2024/bin/x86_64-linux"; OPEN_CMD="xdg-open" ;;
   *)      TEX_PATH=""; OPEN_CMD="open" ;;
 esac
 
-# --- Paths ---
+# Paths
 TEMPLATE_DIR="$HOME/anvil"
 TEMPLATE="$TEMPLATE_DIR/sketch-page.tex"
 COUNTER_FILE="$TEMPLATE_DIR/.entry-counter"
 OUTPUT_DIR="$HOME/anvil/output"
 mkdir -p "$OUTPUT_DIR"
 
+# CLI arguments
 PAPER="a5"
 PREVIEW=false
 NO_PRINT=false
@@ -60,7 +65,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# --- Paper presets ---
+# Paper presets
 case "$PAPER" in
   a5)     PAPER_LATEX="a5paper";     PAPER_MARGIN="10mm"; PAPER_TOP="10mm"; PAPER_BOTTOM="10mm"; PAPER_MEDIA="a5" ;;
   a6)     PAPER_LATEX="a6paper";     PAPER_MARGIN="5mm";  PAPER_TOP="10mm"; PAPER_BOTTOM="5mm";  PAPER_MEDIA="a6" ;;
@@ -80,6 +85,10 @@ ENTRY_PADDED=$(printf "%03d" "$ENTRY_NUM")
 
 DATE=$(date "+%Y-%m-%d")
 
+# ══════════════════════════════════════════════════════════════
+# Pipeline — (markdown, config) → PDF
+# ══════════════════════════════════════════════════════════════
+
 # Read input
 if [[ -n "$INPUT_FILE" && -f "$INPUT_FILE" ]]; then
   MARKDOWN=$(cat "$INPUT_FILE")
@@ -92,7 +101,6 @@ fi
 OUTPUT_NAME="${ENTRY_PADDED}-${BASENAME}-${DATE}"
 OUTPUT_PDF="$OUTPUT_DIR/${OUTPUT_NAME}.pdf"
 
-# Build PDF with pandoc + lualatex
 [[ -n "$TEX_PATH" ]] && export PATH="$TEX_PATH:$PATH"
 
 pandoc \
@@ -121,12 +129,14 @@ pandoc \
 echo "✦ Generated: $OUTPUT_PDF"
 echo "  Paper: $(echo $PAPER | tr '[:lower:]' '[:upper:]') | Entry: #${ENTRY_PADDED} | Date: $DATE"
 
-# Preview
+# ══════════════════════════════════════════════════════════════
+# Delivery — preview and print
+# ══════════════════════════════════════════════════════════════
+
 if $PREVIEW; then
   $OPEN_CMD "$OUTPUT_PDF"
 fi
 
-# Print
 if ! $NO_PRINT; then
   PRINTER=$(lpstat -d 2>/dev/null | sed 's/.*: //' || true)
   if [[ -n "$PRINTER" ]]; then
