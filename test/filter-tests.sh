@@ -95,6 +95,33 @@ else
   fail "horizontal rule rendering broken"
 fi
 
+echo "[8] Flow block renders as tikzpicture with numbered steps"
+run_filter "$FIXTURES/flow.md" ""
+if grep -q 'tikzpicture' "$TMPOUT"; then
+  pass "flow block produces tikzpicture"
+else
+  fail "flow block did not produce tikzpicture"
+fi
+if grep -q 'anvilstepnum' "$TMPOUT"; then
+  pass "flow block contains step number nodes"
+else
+  fail "flow block missing step number nodes"
+fi
+if grep -q 'draw.*accent' "$TMPOUT"; then
+  pass "flow block contains accent-colored connectors"
+else
+  fail "flow block missing accent connectors"
+fi
+
+echo "[9] Flow block: correct step count"
+run_filter "$FIXTURES/flow.md" ""
+step_count=$(grep -c '\\node\[anvilstepnum\]' "$TMPOUT" || true)
+if [[ "$step_count" -eq 5 ]]; then
+  pass "flow block has 5 steps"
+else
+  fail "flow block has $step_count steps (expected 5)"
+fi
+
 echo ""
 echo "======================="
 echo "Results: $PASS passed, $FAIL failed"

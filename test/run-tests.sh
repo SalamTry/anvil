@@ -464,6 +464,12 @@ should_run "theme-omitted" && {
   [[ -f "$png" ]] && pass "no --theme flag renders PDF (dot default)" || fail "no --theme flag failed"
 }
 
+should_run "flow" && {
+  echo "[27] Flow block renders PDF"
+  png=$(render "$FIXTURES/flow.md" "flow")
+  [[ -f "$png" ]] && pass "flow PDF rendered" || fail "flow PDF not rendered"
+}
+
 should_run "theme-contract" && {
   echo "[26] Theme contract: grid-bg variable still wired"
   if grep -q 'grid-bg' "$PRINT_DIR/sketch-page.tex"; then

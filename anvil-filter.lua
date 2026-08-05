@@ -67,8 +67,72 @@ function Table(el)
   return pandoc.RawBlock("latex", table.concat(lines, "\n"))
 end
 
+-- Escape LaTeX special characters in plain text
+local function escape_latex(s)
+  s = s:gsub("\\", "\\textbackslash{}")
+  s = s:gsub("([&%%$#_{}])", "\\%1")
+  s = s:gsub("~", "\\textasciitilde{}")
+  s = s:gsub("%^", "\\textasciicircum{}")
+  return s
+end
+
+-- Render ```flow fenced blocks as numbered steps with visual connectors
+local function render_flow(el)
+  local steps = {}
+  for line in el.text:gmatch("[^\n]+") do
+    local trimmed = line:match("^%s*(.-)%s*$")
+    if trimmed ~= "" then
+      table.insert(steps, trimmed)
+    end
+  end
+
+  if #steps == 0 then return nil end
+
+  local step_sep = 12  -- mm between step centers — generous spacing
+  local circle_r = 3   -- mm from center to connector start/end
+
+  local lines = {}
+  table.insert(lines, "\\par\\noindent")
+  table.insert(lines, "\\begin{tikzpicture}[")
+  table.insert(lines, "  anvilstepnum/.style={circle, fill=accent, text=white, font=\\footnotesize\\bfseries, inner sep=0pt, minimum size=1.6em},")
+  table.insert(lines, "  anvilsteptxt/.style={anchor=north west, text width=\\linewidth-2.5em, font=\\small\\color{body}},")
+  table.insert(lines, "]")
+
+  for i, step in ipairs(steps) do
+    local y = -(i - 1) * step_sep
+    -- Step number circle
+    table.insert(lines, string.format(
+      "\\node[anvilstepnum] (n%d) at (0, %dmm) {%d};",
+      i, y, i
+    ))
+    -- Step text
+    table.insert(lines, string.format(
+      "\\node[anvilsteptxt] at (1.4em, %dmm + 0.5ex) {%s};",
+      y, escape_latex(step)
+    ))
+    -- Connector line to next step
+    if i < #steps then
+      local line_top = y - circle_r
+      local line_bottom = y - step_sep + circle_r
+      table.insert(lines, string.format(
+        "\\draw[accent, line width=0.6pt] (0, %dmm) -- (0, %dmm);",
+        line_top, line_bottom
+      ))
+    end
+  end
+
+  table.insert(lines, "\\end{tikzpicture}")
+  table.insert(lines, "\\par\\vspace{\\gridunit}")
+
+  return pandoc.RawBlock("latex", table.concat(lines, "\n"))
+end
+
 -- Render d2 code fences as sketch-style diagrams
 function CodeBlock(el)
+  if el.classes:includes("flow") then
+    return render_flow(el)
+  end
+
   if not el.classes:includes("d2") then return nil end
 
   local d2_bin = os.getenv("ANVIL_D2_BIN") or "d2"
