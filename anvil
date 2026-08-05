@@ -11,10 +11,25 @@ set -euo pipefail
 
 # Platform
 case "$(uname -s)" in
-  Darwin) TEX_PATH="/Library/TeX/texbin"; OPEN_CMD="open" ;;
-  Linux)  TEX_PATH="/usr/local/texlive/2024/bin/x86_64-linux"; OPEN_CMD="xdg-open" ;;
-  *)      TEX_PATH=""; OPEN_CMD="open" ;;
+  Darwin) TEX_PATH="/Library/TeX/texbin"; OPEN_CMD="open"; PLATFORM="darwin" ;;
+  Linux)  TEX_PATH="/usr/local/texlive/2024/bin/x86_64-linux"; OPEN_CMD="xdg-open"; PLATFORM="linux" ;;
+  *)      TEX_PATH=""; OPEN_CMD="open"; PLATFORM="other" ;;
 esac
+
+# Desktop notification — fires after a successful print
+notify() {
+  local title="$1" message="$2"
+  case "$PLATFORM" in
+    darwin)
+      osascript -e "display notification \"$message\" with title \"$title\"" 2>/dev/null || true
+      ;;
+    linux)
+      if command -v notify-send >/dev/null 2>&1; then
+        notify-send "$title" "$message" 2>/dev/null || true
+      fi
+      ;;
+  esac
+}
 
 # Paths
 TEMPLATE_DIR="$HOME/anvil"
@@ -213,6 +228,7 @@ if ! $NO_PRINT; then
       if $SAW_PROCESSING && [[ "$PRINTER_STATE_ENUM" == "idle" ]]; then
         printf "\r\033[K" >&2
         echo "  ✓ Printed on $PRINTER"
+        notify "anvil" "#${ENTRY_PADDED} printed on ${PRINTER}"
         break
       fi
 

@@ -4,9 +4,9 @@
 
 **Blocked by:** 01 — Wait for print job completion
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] On macOS, a notification fires via `osascript` with entry number and printer name
-- [ ] On Linux, `notify-send` is used if available; if not, no error is raised
-- [ ] Notification is skipped when `--no-print` is set
-- [ ] Notification is skipped on timeout (only fires on successful completion)
+- [x] On macOS, a notification fires via `osascript` with entry number and printer name
+- [x] On Linux, `notify-send` is used if available; if not, no error is raised
+- [x] Notification is skipped when `--no-print` is set
+- [x] Notification is skipped on timeout (only fires on successful completion)

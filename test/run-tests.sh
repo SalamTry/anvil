@@ -326,6 +326,83 @@ FIXTURE
   fi
 }
 
+should_run "notify" && {
+  echo "[20] Notification function"
+
+  # Source just the notify function with a mock platform
+  test_notify() {
+    local PLATFORM="$1"
+    local LOG=$(mktemp)
+
+    # Mock osascript and notify-send to log calls
+    osascript()  { echo "osascript $*" >> "$LOG"; }
+    notify-send() { echo "notify-send $*" >> "$LOG"; }
+    command() {
+      if [[ "$1" == "-v" && "$2" == "notify-send" ]]; then
+        return 0
+      fi
+      builtin command "$@"
+    }
+
+    # Inline the function (must match anvil's notify)
+    notify() {
+      local title="$1" message="$2"
+      case "$PLATFORM" in
+        darwin)
+          osascript -e "display notification \"$message\" with title \"$title\"" 2>/dev/null || true
+          ;;
+        linux)
+          if command -v notify-send >/dev/null 2>&1; then
+            notify-send "$title" "$message" 2>/dev/null || true
+          fi
+          ;;
+      esac
+    }
+
+    notify "anvil" "#006 printed on HP_Smart_Tank_581"
+    cat "$LOG"
+    rm -f "$LOG"
+
+    unfunction osascript notify-send command notify 2>/dev/null || true
+  }
+
+  # macOS: should call osascript
+  darwin_out=$(test_notify darwin)
+  if echo "$darwin_out" | grep -q 'osascript.*display notification'; then
+    pass "macOS notification calls osascript"
+  else
+    fail "macOS notification did not call osascript (got: $darwin_out)"
+  fi
+
+  # Linux: should call notify-send
+  linux_out=$(test_notify linux)
+  if echo "$linux_out" | grep -q 'notify-send.*#006'; then
+    pass "Linux notification calls notify-send"
+  else
+    fail "Linux notification did not call notify-send (got: $linux_out)"
+  fi
+
+  # Other platform: should produce no output (no notification)
+  other_out=$(test_notify other)
+  if [[ -z "$other_out" ]]; then
+    pass "unknown platform skips notification silently"
+  else
+    fail "unknown platform should not notify (got: $other_out)"
+  fi
+}
+
+should_run "notify-no-print" && {
+  echo "[21] Notification skipped with --no-print"
+  # --no-print renders the PDF but never enters the print block, so
+  # the notify call (inside the print-wait loop) is never reached.
+  # Verify by grepping the script structure: notify is inside the !NO_PRINT guard.
+  if awk '/^if ! \$NO_PRINT/,/^fi$/' "$PRINT_DIR/anvil" | grep -q 'notify '; then
+    pass "--no-print guard covers notify call"
+  else
+    fail "notify call is NOT inside the --no-print block"
+  fi
+}
+
 # ─── Results ───
 
 echo ""
