@@ -42,12 +42,14 @@ $endif$
 \definecolor{muted}{HTML}{$color-muted$}
 \definecolor{body}{HTML}{$color-body$}
 
-% --- Dot grid background — pre-rendered PNG ---
+% --- Background — pre-rendered PNG (omitted for blank theme) ---
+$if(grid-bg)$
 \AddToShipoutPictureBG{%
   \AtPageLowerLeft{%
     \includegraphics[width=\paperwidth,height=\paperheight]{$grid-bg$}%
   }%
 }
+$endif$
 
 % --- Page style ---
 \pagestyle{fancy}

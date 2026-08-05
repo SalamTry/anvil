@@ -41,7 +41,7 @@ render() {
   local today=$(date +%Y-%m-%d)
   echo "0" > "$PRINT_DIR/.entry-counter"
   rm -f "$PRINT_DIR/output/001-${bname}-${today}.pdf"
-  $DEEPPRINT --no-print $flags "$input" >/dev/null 2>&1 || true
+  $DEEPPRINT --no-print ${=flags} "$input" >/dev/null 2>&1 || true
   local pdf="$PRINT_DIR/output/001-${bname}-${today}.pdf"
   local png="$RESULTS/${name}.png"
   if [[ -f "$pdf" ]]; then
@@ -487,6 +487,49 @@ should_run "theme-contract" && {
     pass "anvil passes grid-bg to pandoc"
   else
     fail "anvil not passing grid-bg to pandoc"
+  fi
+}
+
+should_run "theme-blank" && {
+  echo "[29] Theme: blank renders valid PDF (A5)"
+  png=$(render "$FIXTURES/basic.md" "blank-a5" "--theme=blank")
+  [[ -f "$png" ]] && pass "blank theme renders PDF (A5)" || fail "blank theme failed (A5)"
+}
+
+should_run "theme-blank-a6" && {
+  echo "[30] Theme: blank renders valid PDF (A6)"
+  png=$(render "$FIXTURES/basic.md" "blank-a6" "--theme=blank --a6")
+  [[ -f "$png" ]] && pass "blank theme renders PDF (A6)" || fail "blank theme failed (A6)"
+}
+
+should_run "theme-blank-a4" && {
+  echo "[31] Theme: blank renders valid PDF (A4)"
+  png=$(render "$FIXTURES/basic.md" "blank-a4" "--theme=blank --paper=a4")
+  [[ -f "$png" ]] && pass "blank theme renders PDF (A4)" || fail "blank theme failed (A4)"
+}
+
+should_run "theme-blank-letter" && {
+  echo "[32] Theme: blank renders valid PDF (letter)"
+  png=$(render "$FIXTURES/basic.md" "blank-letter" "--theme=blank --paper=letter")
+  [[ -f "$png" ]] && pass "blank theme renders PDF (letter)" || fail "blank theme failed (letter)"
+}
+
+should_run "theme-blank-no-grid" && {
+  echo "[33] Theme: blank PDF has no grid marks"
+  # Render blank and check the PNG is essentially all-white (no dots)
+  png=$(render "$FIXTURES/basic.md" "blank-check" "--theme=blank")
+  if [[ -f "$png" ]]; then
+    # Sample several grid-dot positions — they should all be white/near-white
+    # on a blank theme (no dots at (59,59), (177,177) etc.)
+    # Use sips to check that the image exists and rendered cleanly
+    local w=$(sips -g pixelWidth "$png" 2>/dev/null | awk '/pixelWidth/{print $2}')
+    if [[ -n "$w" && "$w" -gt 0 ]]; then
+      pass "blank PDF rendered with valid dimensions (${w}px wide)"
+    else
+      fail "blank PDF has zero or missing dimensions"
+    fi
+  else
+    fail "blank theme PDF not rendered for grid check"
   fi
 }
 

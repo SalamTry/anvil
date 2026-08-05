@@ -1,0 +1,3 @@
+#!/bin/zsh
+# blank theme — no background grid, clean white page
+# Outputs nothing (empty path); the template skips background inclusion.
