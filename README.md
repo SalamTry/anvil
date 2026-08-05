@@ -227,6 +227,8 @@ themes/
   blank/generate       # No background (outputs nothing)
 schemes/
   pencil.sh            # Muted pencil-gray color scheme
+Formula/
+  anvil.rb             # Homebrew formula
 test/
   run-tests.sh         # Pipeline integration tests
   filter-tests.sh      # Filter-seam unit tests
@@ -258,6 +260,7 @@ Options:
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
+| `ANVIL_DATA_DIR` | `~/anvil` | User data directory (output PDFs, entry counter) |
 | `ANVIL_GRID_CACHE` | `~/.cache/anvil/grids` | Cache directory for theme-generated PNGs |
 | `ANVIL_D2_BIN` | `d2` | Path to the d2 binary |
 | `ANVIL_RSVG_BIN` | `rsvg-convert` | Path to the rsvg-convert binary |
