@@ -1,7 +1,7 @@
 #!/bin/zsh
 # anvil — forge digital knowledge into printed study pages
-# Usage: anvil [--paper=a5|a6|a4|letter] [--scheme=name] [--preview] [--no-print] <file.md>
-#        echo "markdown" | anvil [--paper=a5|a6|a4|letter] [--scheme=name] [--preview] [--no-print]
+# Usage: anvil [--paper=a5|a6|a4|letter] [--scheme=name] [--theme=name] [--preview] [--no-print] <file.md>
+#        echo "markdown" | anvil [--paper=a5|a6|a4|letter] [--scheme=name] [--theme=name] [--preview] [--no-print]
 
 set -euo pipefail
 
@@ -41,16 +41,19 @@ mkdir -p "$OUTPUT_DIR"
 # CLI arguments
 PAPER="a5"
 SCHEME=""
+THEME="dot"
 PREVIEW=false
 NO_PRINT=false
 INPUT_FILE=""
 
 SCHEME_DIR="$TEMPLATE_DIR/schemes"
+THEMES_DIR="$TEMPLATE_DIR/themes"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -h|--help)
       local_schemes=$(ls "$SCHEME_DIR"/*.sh 2>/dev/null | xargs -I{} basename {} .sh | paste -sd', ' -)
+      local_themes=$(ls -d "$THEMES_DIR"/*/ 2>/dev/null | xargs -I{} basename {} | paste -sd', ' -)
       echo "anvil — forge digital knowledge into printed study pages"
       echo ""
       echo "Usage: anvil [options] <file.md>"
@@ -59,6 +62,7 @@ while [[ $# -gt 0 ]]; do
       echo "Options:"
       echo "  --paper=SIZE    Paper size: a5 (default), a6, a4, letter"
       echo "  --scheme=NAME   Color/font scheme: ${local_schemes:-pencil} (default: pencil)"
+      echo "  --theme=NAME    Background theme: ${local_themes:-dot} (default: dot)"
       echo "  --preview       Open PDF after generating"
       echo "  --no-print      Skip sending to printer"
       echo "  -h, --help      Show this help"
@@ -71,6 +75,8 @@ while [[ $# -gt 0 ]]; do
     --paper)   PAPER="$2"; shift 2 ;;
     --scheme=*) SCHEME="${1#--scheme=}"; shift ;;
     --scheme)   SCHEME="$2"; shift 2 ;;
+    --theme=*) THEME="${1#--theme=}"; shift ;;
+    --theme)   THEME="$2"; shift 2 ;;
     --a6) PAPER="a6"; shift ;;
     --a5) PAPER="a5"; shift ;;
     --preview) PREVIEW=true; shift ;;
@@ -116,7 +122,23 @@ if [[ -n "$SCHEME" ]]; then
   : "${FONT_MONO:=Menlo}"
 fi
 
-# Entry counter
+# ══════════════════════════════════════════════════════════════
+# Background theme — pluggable grid/background generator
+# ══════════════════════════════════════════════════════════════
+
+if [[ ! "$THEME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+  echo "Error: invalid theme name '$THEME'. Use letters, digits, hyphens, or underscores." >&2
+  exit 1
+fi
+
+THEME_GENERATOR="$THEMES_DIR/$THEME/generate"
+if [[ ! -f "$THEME_GENERATOR" ]]; then
+  available=$(ls -d "$THEMES_DIR"/*/ 2>/dev/null | xargs -I{} basename {} | paste -sd', ' -)
+  echo "Error: unknown theme '$THEME'. Available: ${available:-none}" >&2
+  exit 1
+fi
+
+# Entry counter — after all validation so bad inputs don't inflate it
 if [[ -f "$COUNTER_FILE" ]]; then
   ENTRY_NUM=$(($(cat "$COUNTER_FILE") + 1))
 else
@@ -127,11 +149,7 @@ ENTRY_PADDED=$(printf "%03d" "$ENTRY_NUM")
 
 DATE=$(date "+%Y-%m-%d")
 
-# ══════════════════════════════════════════════════════════════
-# Grid background — pre-rendered PNG (replaces TikZ dot grid)
-# ══════════════════════════════════════════════════════════════
-
-GRID_PNG=$(python3 "$TEMPLATE_DIR/grid-png" "$PAPER" "${COLORS[gridline]}" "${COLORS[gridmajor]}")
+GRID_PNG=$("$THEME_GENERATOR" "$PAPER" "${COLORS[gridline]}" "${COLORS[gridmajor]}")
 
 # ══════════════════════════════════════════════════════════════
 # Pipeline — (markdown, config) → PDF

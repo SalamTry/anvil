@@ -403,6 +403,81 @@ should_run "notify-no-print" && {
   fi
 }
 
+should_run "theme-default" && {
+  echo "[22] Theme: default (dot) renders identical output"
+  png=$(render "$FIXTURES/basic.md" "theme-default" "--theme=dot")
+  [[ -f "$png" ]] && pass "--theme=dot renders PDF" || fail "--theme=dot failed to render"
+}
+
+should_run "theme-invalid" && {
+  echo "[23] Theme: invalid name errors with available list"
+  echo "0" > "$PRINT_DIR/.entry-counter"
+  err=$($DEEPPRINT --no-print --theme=nonexistent "$FIXTURES/basic.md" 2>&1) && {
+    fail "should have exited non-zero for invalid theme"
+  } || {
+    if echo "$err" | grep -q "unknown theme"; then
+      pass "error message for invalid theme"
+    else
+      fail "missing error message (got: $err)"
+    fi
+    if echo "$err" | grep -q "dot"; then
+      pass "error lists available themes"
+    else
+      fail "error does not list available themes (got: $err)"
+    fi
+  }
+}
+
+should_run "theme-traversal" && {
+  echo "[23b] Theme: path traversal rejected"
+  echo "0" > "$PRINT_DIR/.entry-counter"
+  err=$($DEEPPRINT --no-print --theme=../etc "$FIXTURES/basic.md" 2>&1) && {
+    fail "should have exited non-zero for path traversal"
+  } || {
+    if echo "$err" | grep -q "invalid theme name"; then
+      pass "path traversal rejected with clear error"
+    else
+      fail "path traversal not caught (got: $err)"
+    fi
+  }
+}
+
+should_run "theme-help" && {
+  echo "[24] Theme: --help lists available themes"
+  help_out=$($DEEPPRINT --help 2>&1)
+  if echo "$help_out" | grep -q "\-\-theme="; then
+    pass "--help shows --theme flag"
+  else
+    fail "--help missing --theme flag"
+  fi
+  if echo "$help_out" | grep -q "dot"; then
+    pass "--help lists dot theme"
+  else
+    fail "--help does not list dot theme"
+  fi
+}
+
+should_run "theme-omitted" && {
+  echo "[25] Theme: omitting --theme defaults to dot"
+  # Render without --theme flag — should succeed (defaults to dot)
+  png=$(render "$FIXTURES/basic.md" "theme-omitted")
+  [[ -f "$png" ]] && pass "no --theme flag renders PDF (dot default)" || fail "no --theme flag failed"
+}
+
+should_run "theme-contract" && {
+  echo "[26] Theme contract: grid-bg variable still wired"
+  if grep -q 'grid-bg' "$PRINT_DIR/sketch-page.tex"; then
+    pass "template uses \$grid-bg\$"
+  else
+    fail "template missing \$grid-bg\$ variable"
+  fi
+  if grep -q 'grid-bg' "$PRINT_DIR/anvil"; then
+    pass "anvil passes grid-bg to pandoc"
+  else
+    fail "anvil not passing grid-bg to pandoc"
+  fi
+}
+
 # ─── Results ───
 
 echo ""
