@@ -183,6 +183,34 @@ local function render_table(el)
   return emit_tabularx(header_row, body_rows)
 end
 
+-- Render ```card fenced blocks as tinted callout boxes with accent left border
+local function render_card(el)
+  local text = el.text
+  if text:match("^%s*$") then return nil end
+
+  -- Parse the card content as markdown so bold, italic, lists work
+  local doc = pandoc.read(text, "markdown")
+  local inner_latex = pandoc.write(doc, "latex")
+
+  local lines = {}
+  -- Background fill + left accent border via TikZ overlay on a minipage
+  table.insert(lines, "\\noindent")
+  table.insert(lines, "\\begin{tikzpicture}")
+  table.insert(lines, "\\node[inner sep=\\gridunit, text width=\\linewidth-3\\gridunit] (cardbox) {%")
+  table.insert(lines, "  {\\small\\color{body}" .. inner_latex .. "}%")
+  table.insert(lines, "};")
+  table.insert(lines, "\\fill[card-bg] (cardbox.south west) rectangle (cardbox.north east);")
+  table.insert(lines, "\\fill[card-border] (cardbox.south west) rectangle ([xshift=2.5pt]cardbox.north west);")
+  -- Re-draw text on top of fill
+  table.insert(lines, "\\node[inner sep=\\gridunit, text width=\\linewidth-3\\gridunit, anchor=north west] at (cardbox.north west) {%")
+  table.insert(lines, "  {\\small\\color{body}" .. inner_latex .. "}%")
+  table.insert(lines, "};")
+  table.insert(lines, "\\end{tikzpicture}")
+  table.insert(lines, "\\par\\vspace{\\gridunit}")
+
+  return pandoc.RawBlock("latex", table.concat(lines, "\n"))
+end
+
 -- Render d2 code fences as sketch-style diagrams
 function CodeBlock(el)
   if el.classes:includes("table") then
@@ -191,6 +219,10 @@ function CodeBlock(el)
 
   if el.classes:includes("flow") then
     return render_flow(el)
+  end
+
+  if el.classes:includes("card") then
+    return render_card(el)
   end
 
   if not el.classes:includes("d2") then return nil end

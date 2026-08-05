@@ -476,6 +476,12 @@ should_run "table-block" && {
   [[ -f "$png" ]] && pass "table block PDF rendered" || fail "table block PDF not rendered"
 }
 
+should_run "card" && {
+  echo "[29b] Card block renders PDF"
+  png=$(render "$FIXTURES/card.md" "card")
+  [[ -f "$png" ]] && pass "card PDF rendered" || fail "card PDF not rendered"
+}
+
 should_run "theme-lined" && {
   echo "[34] Theme: lined renders valid PDF (A5)"
   png=$(render "$FIXTURES/basic.md" "lined-a5" "--theme=lined")

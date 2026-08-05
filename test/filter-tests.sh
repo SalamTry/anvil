@@ -160,6 +160,34 @@ else
   fail "standard table missing alternating row shading"
 fi
 
+echo "[16-20] Card block rendering"
+run_filter "$FIXTURES/card.md" ""
+if grep -q 'tikzpicture' "$TMPOUT"; then
+  pass "card block produces tikzpicture"
+else
+  fail "card block did not produce tikzpicture"
+fi
+if grep -q 'card-bg' "$TMPOUT"; then
+  pass "card block uses card-bg color"
+else
+  fail "card block missing card-bg color"
+fi
+if grep -q 'card-border' "$TMPOUT"; then
+  pass "card block uses card-border color"
+else
+  fail "card block missing card-border color"
+fi
+if grep -q 'fill\[card-border\]' "$TMPOUT"; then
+  pass "card block has left accent border"
+else
+  fail "card block missing left border"
+fi
+if grep -q 'textbf\|bfseries' "$TMPOUT"; then
+  pass "card block renders bold content"
+else
+  fail "card block did not render bold content"
+fi
+
 echo ""
 echo "======================="
 echo "Results: $PASS passed, $FAIL failed"
