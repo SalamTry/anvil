@@ -476,6 +476,30 @@ should_run "table-block" && {
   [[ -f "$png" ]] && pass "table block PDF rendered" || fail "table block PDF not rendered"
 }
 
+should_run "theme-lined" && {
+  echo "[34] Theme: lined renders valid PDF (A5)"
+  png=$(render "$FIXTURES/basic.md" "lined-a5" "--theme=lined")
+  [[ -f "$png" ]] && pass "lined theme renders PDF (A5)" || fail "lined theme failed (A5)"
+}
+
+should_run "theme-lined-a6" && {
+  echo "[35] Theme: lined renders valid PDF (A6)"
+  png=$(render "$FIXTURES/basic.md" "lined-a6" "--theme=lined --a6")
+  [[ -f "$png" ]] && pass "lined theme renders PDF (A6)" || fail "lined theme failed (A6)"
+}
+
+should_run "theme-lined-a4" && {
+  echo "[36] Theme: lined renders valid PDF (A4)"
+  png=$(render "$FIXTURES/basic.md" "lined-a4" "--theme=lined --paper=a4")
+  [[ -f "$png" ]] && pass "lined theme renders PDF (A4)" || fail "lined theme failed (A4)"
+}
+
+should_run "theme-lined-letter" && {
+  echo "[37] Theme: lined renders valid PDF (letter)"
+  png=$(render "$FIXTURES/basic.md" "lined-letter" "--theme=lined --paper=letter")
+  [[ -f "$png" ]] && pass "lined theme renders PDF (letter)" || fail "lined theme failed (letter)"
+}
+
 should_run "theme-contract" && {
   echo "[26] Theme contract: grid-bg variable still wired"
   if grep -q 'grid-bg' "$PRINT_DIR/sketch-page.tex"; then
