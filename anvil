@@ -175,14 +175,55 @@ if ! $NO_PRINT; then
     PRINT_TIMEOUT=120
     POLL_INTERVAL=2
     ELAPSED=0
+    SPINNER_CHARS='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    SPINNER_IDX=0
+
+    # Resolve printer IPP URI for status checks
+    PRINTER_URI=$(lpstat -v "$PRINTER" 2>/dev/null | sed 's/.*: //' || true)
+
     while lpstat 2>/dev/null | grep -q "$JOB_ID"; do
+      # Check for printer errors via IPP
+      if [[ -n "$PRINTER_URI" ]]; then
+        IPP_STATUS=$(ipptool -tv "$PRINTER_URI" get-printer-attributes.test 2>/dev/null \
+          | grep -E 'printer-state-reasons|printer-alert-description' || true)
+        PRINTER_REASONS=$(echo "$IPP_STATUS" | grep 'printer-state-reasons' | head -1)
+        PRINTER_ALERT=$(echo "$IPP_STATUS" | grep 'printer-alert-description' | sed 's/.*= //' | head -1)
+
+        if echo "$PRINTER_REASONS" | grep -qE 'media-empty|media-needed|media-jam|offline|shutdown|door-open|cover-open'; then
+          # Clear the spinner line
+          printf "\r\033[K" >&2
+          ERROR_MSG="${PRINTER_ALERT:-Printer error}"
+          echo "  ⚠ $ERROR_MSG" >&2
+          printf "  Fix the printer and retry? (y/n) " >&2
+          read -r REPLY </dev/tty
+          if [[ "$REPLY" =~ ^[Yy]$ ]]; then
+            # Re-enable the printer in case CUPS paused it
+            cupsenable "$PRINTER" 2>/dev/null || true
+            ELAPSED=0
+            continue
+          else
+            cancel "$JOB_ID" 2>/dev/null || true
+            echo "  ✗ Cancelled job $JOB_ID"
+            exit 1
+          fi
+        fi
+      fi
+
+      # Show spinner
+      SPIN_CHAR="${SPINNER_CHARS:$SPINNER_IDX:1}"
+      printf "\r  %s Printing... %ds" "$SPIN_CHAR" "$ELAPSED" >&2
+      SPINNER_IDX=$(( (SPINNER_IDX + 1) % ${#SPINNER_CHARS} ))
+
       sleep "$POLL_INTERVAL"
       ELAPSED=$((ELAPSED + POLL_INTERVAL))
       if [[ $ELAPSED -ge $PRINT_TIMEOUT ]]; then
+        printf "\r\033[K" >&2
         echo "  ⚠ Timeout: job $JOB_ID still in queue after ${PRINT_TIMEOUT}s"
         exit 2
       fi
     done
+    # Clear spinner and show confirmation
+    printf "\r\033[K" >&2
     echo "  ✓ Printed on $PRINTER"
   else
     echo "  ⚠ No default printer set. Use: lpadmin -d <printer-name>"
