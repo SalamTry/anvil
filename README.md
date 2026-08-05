@@ -127,6 +127,22 @@ The first row becomes a bold header. Even rows get subtle shading.
 
 Standard Markdown tables (`| Col | Col |` with `|---|---|` separator) also render with the same enhanced styling automatically.
 
+**Card** — tinted callout box with accent left border:
+
+````md
+```card
+**Spaced repetition** works by increasing the interval between reviews each time you recall something correctly.
+
+- First review: 1 day
+- Second review: 3 days
+- Third review: 7 days
+
+*The forgetting curve flattens with each successful recall.*
+```
+````
+
+Content inside cards supports full Markdown formatting — bold, italic, and lists. Cards use the scheme's accent color for the left border and a light tint for the background fill.
+
 **d2 diagrams** — sketch-style diagrams via [d2](https://d2lang.com):
 
 ````md
@@ -223,7 +239,7 @@ pytest test/
 
 ```
 anvil                  # Main CLI script (zsh)
-anvil-filter.lua       # Pandoc Lua filter — title, tables, flow, d2
+anvil-filter.lua       # Pandoc Lua filter — title, tables, flow, card, d2
 sketch-page.tex        # LaTeX template — geometry, fonts, colors, grid-snap
 grid-snap.lua          # LuaTeX callback — snaps baselines to 5mm pitch
 themes/
