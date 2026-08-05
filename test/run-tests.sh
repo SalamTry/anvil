@@ -470,6 +470,12 @@ should_run "flow" && {
   [[ -f "$png" ]] && pass "flow PDF rendered" || fail "flow PDF not rendered"
 }
 
+should_run "table-block" && {
+  echo "[28] Table block renders PDF"
+  png=$(render "$FIXTURES/table-block.md" "table-block")
+  [[ -f "$png" ]] && pass "table block PDF rendered" || fail "table block PDF not rendered"
+}
+
 should_run "theme-contract" && {
   echo "[26] Theme contract: grid-bg variable still wired"
   if grep -q 'grid-bg' "$PRINT_DIR/sketch-page.tex"; then

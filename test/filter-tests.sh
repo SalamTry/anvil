@@ -122,6 +122,59 @@ else
   fail "flow block has $step_count steps (expected 5)"
 fi
 
+echo "[10] Table block: fenced code renders as tabularx"
+run_filter "$FIXTURES/table-block.md" ""
+if grep -q 'tabularx' "$TMPOUT"; then
+  pass "table block produces tabularx"
+else
+  fail "table block did not produce tabularx"
+fi
+
+echo "[11] Table block: header row has bold styling"
+run_filter "$FIXTURES/table-block.md" ""
+if grep -q 'bfseries' "$TMPOUT"; then
+  pass "table block header is bold"
+else
+  fail "table block header missing bold"
+fi
+
+echo "[12] Table block: correct column count"
+run_filter "$FIXTURES/table-block.md" ""
+if grep -q '|X|X|X|' "$TMPOUT"; then
+  pass "table block has 3 columns"
+else
+  fail "table block column count wrong"
+fi
+
+echo "[13] Table block: alternating row shading"
+run_filter "$FIXTURES/table-block.md" ""
+if grep -q 'rowcolor{gridline' "$TMPOUT"; then
+  pass "table block has alternating row shading"
+else
+  fail "table block missing row shading"
+fi
+
+echo "[14] Table block: header row background"
+run_filter "$FIXTURES/table-block.md" ""
+if grep -q 'rowcolor{gridmajor' "$TMPOUT"; then
+  pass "table block header has gridmajor background"
+else
+  fail "table block header missing gridmajor background"
+fi
+
+echo "[15] Standard markdown table: enhanced styling"
+run_filter "$FIXTURES/table.md" ""
+if grep -q 'rowcolor{gridmajor' "$TMPOUT"; then
+  pass "standard table header has gridmajor background"
+else
+  fail "standard table header missing enhanced styling"
+fi
+if grep -q 'rowcolor{gridline' "$TMPOUT"; then
+  pass "standard table has alternating row shading"
+else
+  fail "standard table missing alternating row shading"
+fi
+
 echo ""
 echo "======================="
 echo "Results: $PASS passed, $FAIL failed"
