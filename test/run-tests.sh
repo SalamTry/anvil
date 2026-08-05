@@ -524,6 +524,19 @@ should_run "theme-graph-letter" && {
   [[ -f "$png" ]] && pass "graph theme renders PDF (letter)" || fail "graph theme failed (letter)"
 }
 
+should_run "relocatable" && {
+  echo "[42] Relocatable: renders from a different working directory"
+  echo "0" > "$PRINT_DIR/.entry-counter"
+  local today=$(date +%Y-%m-%d)
+  rm -f "$PRINT_DIR/output/001-note-${today}.pdf"
+  (cd /tmp && echo "# Relocatable test" | $DEEPPRINT --no-print >/dev/null 2>&1)
+  if [[ -f "$PRINT_DIR/output/001-note-${today}.pdf" ]]; then
+    pass "PDF rendered from /tmp working directory"
+  else
+    fail "PDF not rendered when cwd is /tmp"
+  fi
+}
+
 should_run "theme-contract" && {
   echo "[26] Theme contract: grid-bg variable still wired"
   if grep -q 'grid-bg' "$PRINT_DIR/sketch-page.tex"; then

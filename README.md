@@ -15,7 +15,9 @@ echo "# TCP Handshake\n\nSYN → SYN-ACK → ACK" | anvil
 ### Homebrew (macOS / Linux)
 
 ```sh
+brew tap SalamTry/anvil
 brew install anvil
+brew install --cask basictex   # LuaLaTeX — required for PDF rendering
 ```
 
 ### Manual
@@ -24,6 +26,7 @@ Clone the repo and ensure dependencies are on your PATH:
 
 ```sh
 git clone https://github.com/SalamTry/anvil.git ~/anvil
+export PATH="$HOME/anvil:$PATH"
 ```
 
 **Dependencies:**

@@ -31,11 +31,12 @@ notify() {
   esac
 }
 
-# Paths
-TEMPLATE_DIR="$HOME/anvil"
+# Paths — resolve install location from the script itself (works with symlinks)
+TEMPLATE_DIR="${0:A:h}"
 TEMPLATE="$TEMPLATE_DIR/sketch-page.tex"
-COUNTER_FILE="$TEMPLATE_DIR/.entry-counter"
-OUTPUT_DIR="$HOME/anvil/output"
+DATA_DIR="${ANVIL_DATA_DIR:-$HOME/anvil}"
+COUNTER_FILE="$DATA_DIR/.entry-counter"
+OUTPUT_DIR="$DATA_DIR/output"
 mkdir -p "$OUTPUT_DIR"
 
 # CLI arguments
@@ -168,6 +169,10 @@ OUTPUT_NAME="${ENTRY_PADDED}-${BASENAME}-${DATE}"
 OUTPUT_PDF="$OUTPUT_DIR/${OUTPUT_NAME}.pdf"
 
 [[ -n "$TEX_PATH" ]] && export PATH="$TEX_PATH:$PATH"
+
+# Ensure lualatex can find grid-snap.lua regardless of working directory
+export TEXINPUTS="$TEMPLATE_DIR:${TEXINPUTS:-}"
+export LUAINPUTS="$TEMPLATE_DIR:${LUAINPUTS:-}"
 
 pandoc \
   -f markdown+hard_line_breaks \
