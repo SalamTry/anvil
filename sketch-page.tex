@@ -23,7 +23,6 @@ $endif$
 
 % --- Packages ---
 \usepackage{xcolor}
-\usepackage{tikz}
 \usepackage{enumitem}
 \usepackage{parskip}
 \usepackage{fancyhdr}
@@ -42,20 +41,11 @@ $endif$
 \definecolor{muted}{HTML}{$color-muted$}
 \definecolor{body}{HTML}{$color-body$}
 
-% --- Dot grid background — 5mm minor, 15mm major ---
+% --- Dot grid background — pre-rendered PNG ---
 \AddToShipoutPictureBG{%
-  \begin{tikzpicture}[remember picture, overlay, shift={(current page.south west)}]
-    \pgfmathsetmacro{\pw}{\paperwidth/1cm}
-    \pgfmathsetmacro{\ph}{\paperheight/1cm}
-    % Minor dots — 5mm spacing both directions
-    \foreach \x in {0,0.5,...,\pw}
-      \foreach \y in {0,0.5,...,\ph}
-        \fill[gridline] (\x cm,\y cm) circle (0.45pt);
-    % Major dots — 15mm spacing, bolder
-    \foreach \x in {0,1.5,...,\pw}
-      \foreach \y in {0,1.5,...,\ph}
-        \fill[gridmajor] (\x cm,\y cm) circle (0.85pt);
-  \end{tikzpicture}%
+  \AtPageLowerLeft{%
+    \includegraphics[width=\paperwidth,height=\paperheight]{$grid-bg$}%
+  }%
 }
 
 % --- Page style ---

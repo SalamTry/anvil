@@ -4,11 +4,11 @@
 
 **Blocked by:** 01 — Grid PNG generator script
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] anvil invokes the generator with the active paper size and scheme grid colors
-- [ ] The LaTeX template uses the PNG as a background image instead of TikZ circles
-- [ ] The TikZ dot grid code is removed from the template
-- [ ] PDF output is valid and visually matches the old grid appearance
-- [ ] A single-page A5 text note prints in under 30 seconds on the HP Tank 581
-- [ ] All paper sizes (A5, A6, A4, letter) and schemes still work
+- [x] anvil invokes the generator with the active paper size and scheme grid colors
+- [x] The LaTeX template uses the PNG as a background image instead of TikZ circles
+- [x] The TikZ dot grid code is removed from the template
+- [x] PDF output is valid and visually matches the old grid appearance
+- [ ] A single-page A5 text note prints in under 30 seconds on the HP Tank 581 *(needs manual verification)*
+- [x] All paper sizes (A5, A6, A4, letter) and schemes still work
