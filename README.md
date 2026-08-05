@@ -142,16 +142,22 @@ Requires `d2` and `librsvg` installed. Falls back to a placeholder if missing.
 
 ## AI agent integration
 
+### Claude Code
+
+This repo ships a `/anvil` skill. In any Claude Code session inside the repo, type `/anvil` to forge a study page from conversation context. The skill picks the right page type, selects visual blocks, generates sparse markdown, and previews before printing.
+
+### Any agent (Codex, OpenCode, etc.)
+
 anvil is built for the pipe. Any AI coding agent that runs shell commands can generate study pages:
 
 ```sh
-# Claude Code
+# Basic pipe
 echo "# Hash Tables\n\nKey concepts:\n- Hash function maps keys to indices\n- Collisions resolved by chaining or open addressing" | anvil --no-print
 
 # With visual blocks
 echo '# Deploy Flow\n\n```flow\nBuild the image\nPush to registry\nRoll out pods\nVerify health checks\n```' | anvil --no-print
 
-# Any agent that runs shell (Codex, OpenCode, etc.)
+# Customize theme and paper
 echo "markdown content" | anvil --no-print --theme=lined --paper=a4
 ```
 
