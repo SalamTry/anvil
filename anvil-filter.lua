@@ -19,60 +19,6 @@ local function cell_to_latex(contents)
   return latex:gsub("%s+$", "")
 end
 
--- Convert pandoc tables to full-width gridded LaTeX tabularx with enhanced styling
-function Table(el)
-  local ncols = #el.colspecs
-  local colspec = "|"
-  for i = 1, ncols do
-    colspec = colspec .. "X|"
-  end
-
-  local lines = {}
-  table.insert(lines, "\\noindent\\begin{tabularx}{\\textwidth}{" .. colspec .. "}")
-  table.insert(lines, "\\hline")
-
-  -- Header row — gridmajor background
-  if el.head and el.head.rows and #el.head.rows > 0 then
-    for _, row in ipairs(el.head.rows) do
-      table.insert(lines, "\\rowcolor{gridmajor!20}")
-      local cells = {}
-      for _, cell in ipairs(row.cells) do
-        local content = cell_to_latex(cell.contents)
-        if content ~= "" then
-          table.insert(cells, "{\\bfseries\\small " .. content .. "}")
-        else
-          table.insert(cells, "")
-        end
-      end
-      table.insert(lines, table.concat(cells, " & ") .. " \\\\")
-      table.insert(lines, "\\hline")
-    end
-  end
-
-  -- Body rows — alternating shading
-  local row_idx = 0
-  for _, body in ipairs(el.bodies) do
-    for _, row in ipairs(body.body) do
-      if row_idx % 2 == 1 then
-        table.insert(lines, "\\rowcolor{gridline!10}")
-      end
-      local cells = {}
-      for _, cell in ipairs(row.cells) do
-        local content = cell_to_latex(cell.contents)
-        table.insert(cells, "{\\small " .. content .. "}")
-      end
-      table.insert(lines, table.concat(cells, " & ") .. " \\\\")
-      table.insert(lines, "\\hline")
-      row_idx = row_idx + 1
-    end
-  end
-
-  table.insert(lines, "\\end{tabularx}")
-  table.insert(lines, "\\vspace{\\gridunit}")
-
-  return pandoc.RawBlock("latex", table.concat(lines, "\n"))
-end
-
 -- Escape LaTeX special characters in plain text
 local function escape_latex(s)
   s = s:gsub("\\", "\\textbackslash{}")
@@ -82,16 +28,84 @@ local function escape_latex(s)
   return s
 end
 
--- Render ```flow fenced blocks as numbered steps with visual connectors
-local function render_flow(el)
-  local steps = {}
-  for line in el.text:gmatch("[^\n]+") do
+-- Parse non-empty trimmed lines from a text block
+local function parse_nonempty_lines(text)
+  local result = {}
+  for line in text:gmatch("[^\n]+") do
     local trimmed = line:match("^%s*(.-)%s*$")
     if trimmed ~= "" then
-      table.insert(steps, trimmed)
+      table.insert(result, trimmed)
+    end
+  end
+  return result
+end
+
+-- Emit a styled tabularx from pre-formatted cell strings
+-- header_row: list of formatted header cell strings
+-- body_rows:  list of lists of formatted body cell strings
+local function emit_tabularx(header_row, body_rows)
+  local ncols = #header_row
+  local colspec = "|" .. string.rep("X|", ncols)
+
+  local lines = {}
+  table.insert(lines, "\\noindent\\begin{tabularx}{\\textwidth}{" .. colspec .. "}")
+  table.insert(lines, "\\hline")
+
+  -- Header — semantic color from template
+  table.insert(lines, "\\rowcolor{table-header-bg}")
+  table.insert(lines, table.concat(header_row, " & ") .. " \\\\")
+  table.insert(lines, "\\hline")
+
+  -- Body — alternating shading
+  for i, row in ipairs(body_rows) do
+    if i % 2 == 0 then
+      table.insert(lines, "\\rowcolor{table-row-alt}")
+    end
+    table.insert(lines, table.concat(row, " & ") .. " \\\\")
+    table.insert(lines, "\\hline")
+  end
+
+  table.insert(lines, "\\end{tabularx}")
+  table.insert(lines, "\\vspace{\\gridunit}")
+
+  return pandoc.RawBlock("latex", table.concat(lines, "\n"))
+end
+
+-- Convert pandoc tables to full-width gridded LaTeX tabularx with enhanced styling
+function Table(el)
+  -- Format header cells
+  local header_row = {}
+  if el.head and el.head.rows and #el.head.rows > 0 then
+    local row = el.head.rows[1]
+    for _, cell in ipairs(row.cells) do
+      local content = cell_to_latex(cell.contents)
+      if content ~= "" then
+        table.insert(header_row, "{\\bfseries\\small " .. content .. "}")
+      else
+        table.insert(header_row, "")
+      end
     end
   end
 
+  -- Format body cells
+  local body_rows = {}
+  for _, body in ipairs(el.bodies) do
+    for _, row in ipairs(body.body) do
+      local cells = {}
+      for _, cell in ipairs(row.cells) do
+        local content = cell_to_latex(cell.contents)
+        table.insert(cells, "{\\small " .. content .. "}")
+      end
+      table.insert(body_rows, cells)
+    end
+  end
+
+  return emit_tabularx(header_row, body_rows)
+end
+
+-- Render ```flow fenced blocks as numbered steps with visual connectors
+local function render_flow(el)
+  local steps = parse_nonempty_lines(el.text)
   if #steps == 0 then return nil end
 
   local step_sep = 12  -- mm between step centers — generous spacing
@@ -135,60 +149,38 @@ end
 
 -- Render ```table fenced blocks as styled tables
 local function render_table(el)
-  local rows = {}
-  for line in el.text:gmatch("[^\n]+") do
-    local trimmed = line:match("^%s*(.-)%s*$")
-    if trimmed ~= "" then
-      local cells = {}
-      for cell in (trimmed .. "|"):gmatch("(.-)%s*|%s*") do
-        table.insert(cells, cell:match("^%s*(.-)%s*$"))
-      end
-      table.insert(rows, cells)
+  local raw_rows = {}
+  for _, line in ipairs(parse_nonempty_lines(el.text)) do
+    local cells = {}
+    for cell in (line .. "|"):gmatch("(.-)%s*|%s*") do
+      table.insert(cells, cell:match("^%s*(.-)%s*$"))
     end
+    table.insert(raw_rows, cells)
   end
 
-  if #rows == 0 then return nil end
+  if #raw_rows == 0 then return nil end
 
-  local ncols = #rows[1]
-  local colspec = "|"
-  for i = 1, ncols do
-    colspec = colspec .. "X|"
-  end
-
-  local lines = {}
-  table.insert(lines, "\\noindent\\begin{tabularx}{\\textwidth}{" .. colspec .. "}")
-  table.insert(lines, "\\hline")
-
-  -- First row is header — gridmajor background
-  table.insert(lines, "\\rowcolor{gridmajor!20}")
-  local header_cells = {}
-  for _, cell in ipairs(rows[1]) do
+  -- Format header cells
+  local header_row = {}
+  for _, cell in ipairs(raw_rows[1]) do
     if cell ~= "" then
-      table.insert(header_cells, "{\\bfseries\\small " .. escape_latex(cell) .. "}")
+      table.insert(header_row, "{\\bfseries\\small " .. escape_latex(cell) .. "}")
     else
-      table.insert(header_cells, "")
+      table.insert(header_row, "")
     end
   end
-  table.insert(lines, table.concat(header_cells, " & ") .. " \\\\")
-  table.insert(lines, "\\hline")
 
-  -- Body rows — alternating shading
-  for i = 2, #rows do
-    if (i - 2) % 2 == 1 then
-      table.insert(lines, "\\rowcolor{gridline!10}")
+  -- Format body cells
+  local body_rows = {}
+  for i = 2, #raw_rows do
+    local cells = {}
+    for _, cell in ipairs(raw_rows[i]) do
+      table.insert(cells, "{\\small " .. escape_latex(cell) .. "}")
     end
-    local body_cells = {}
-    for _, cell in ipairs(rows[i]) do
-      table.insert(body_cells, "{\\small " .. escape_latex(cell) .. "}")
-    end
-    table.insert(lines, table.concat(body_cells, " & ") .. " \\\\")
-    table.insert(lines, "\\hline")
+    table.insert(body_rows, cells)
   end
 
-  table.insert(lines, "\\end{tabularx}")
-  table.insert(lines, "\\vspace{\\gridunit}")
-
-  return pandoc.RawBlock("latex", table.concat(lines, "\n"))
+  return emit_tabularx(header_row, body_rows)
 end
 
 -- Render d2 code fences as sketch-style diagrams
