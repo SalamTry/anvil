@@ -4,11 +4,11 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `lp` output is captured and the job ID (e.g. `HP_Smart_Tank_581-3`) is parsed
-- [ ] anvil polls `lpstat` in a loop until the job ID is no longer listed
-- [ ] On completion, anvil prints `✓ Printed on <printer>` to stdout
-- [ ] A timeout (≥60s) prevents infinite hang; on timeout prints a warning and exits with a non-zero code
-- [ ] `--no-print` skips the wait entirely (no behaviour change)
-- [ ] Poll interval is reasonable (1–2s) and doesn't spam the system
+- [x] `lp` output is captured and the job ID (e.g. `HP_Smart_Tank_581-3`) is parsed
+- [x] anvil polls `lpstat` in a loop until the job ID is no longer listed
+- [x] On completion, anvil prints `✓ Printed on <printer>` to stdout
+- [x] A timeout (≥60s) prevents infinite hang; on timeout prints a warning and exits with a non-zero code
+- [x] `--no-print` skips the wait entirely (no behaviour change)
+- [x] Poll interval is reasonable (1–2s) and doesn't spam the system
