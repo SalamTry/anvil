@@ -500,6 +500,30 @@ should_run "theme-lined-letter" && {
   [[ -f "$png" ]] && pass "lined theme renders PDF (letter)" || fail "lined theme failed (letter)"
 }
 
+should_run "theme-graph" && {
+  echo "[38] Theme: graph renders valid PDF (A5)"
+  png=$(render "$FIXTURES/basic.md" "graph-a5" "--theme=graph")
+  [[ -f "$png" ]] && pass "graph theme renders PDF (A5)" || fail "graph theme failed (A5)"
+}
+
+should_run "theme-graph-a6" && {
+  echo "[39] Theme: graph renders valid PDF (A6)"
+  png=$(render "$FIXTURES/basic.md" "graph-a6" "--theme=graph --a6")
+  [[ -f "$png" ]] && pass "graph theme renders PDF (A6)" || fail "graph theme failed (A6)"
+}
+
+should_run "theme-graph-a4" && {
+  echo "[40] Theme: graph renders valid PDF (A4)"
+  png=$(render "$FIXTURES/basic.md" "graph-a4" "--theme=graph --paper=a4")
+  [[ -f "$png" ]] && pass "graph theme renders PDF (A4)" || fail "graph theme failed (A4)"
+}
+
+should_run "theme-graph-letter" && {
+  echo "[41] Theme: graph renders valid PDF (letter)"
+  png=$(render "$FIXTURES/basic.md" "graph-letter" "--theme=graph --paper=letter")
+  [[ -f "$png" ]] && pass "graph theme renders PDF (letter)" || fail "graph theme failed (letter)"
+}
+
 should_run "theme-contract" && {
   echo "[26] Theme contract: grid-bg variable still wired"
   if grep -q 'grid-bg' "$PRINT_DIR/sketch-page.tex"; then

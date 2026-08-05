@@ -1,0 +1,173 @@
+#!/usr/bin/env python3
+"""Generate a graph-paper PNG background for anvil study pages.
+
+Usage: generate <paper-size> <minor-hex> <major-hex>
+
+  paper-size  One of: a5, a6, a4, letter
+  minor-hex   Hex color for minor grid lines (e.g. CCCCCC)
+  major-hex   Hex color for major grid lines (e.g. 999999)
+
+Outputs: path to the generated (or cached) PNG on stdout.
+
+Full grid paper — horizontal and vertical lines forming squares:
+  - Minor lines every 5 mm, thickness 0.3 pt
+  - Major lines every 15 mm, thickness 0.6 pt
+  - 300 DPI
+
+Cache: results are stored by paper+colors hash in $ANVIL_GRID_CACHE
+(default: ~/.cache/anvil/grids). A cache hit prints the path and exits.
+"""
+
+import hashlib
+import os
+import sys
+
+from PIL import Image, ImageDraw
+
+# ── Constants ──────────────────────────────────────────────────
+
+DPI = 300
+MM_PER_INCH = 25.4
+
+# Paper sizes in mm (width, height)
+PAPER_SIZES = {
+    "a5":     (148,   210),
+    "a6":     (105,   148),
+    "a4":     (210,   297),
+    "letter": (215.9, 279.4),
+}
+
+# Line geometry
+MINOR_SPACING_MM = 5     # line every 5 mm
+MAJOR_SPACING_MM = 15    # bold line every 15 mm
+MINOR_THICKNESS_PT = 0.3
+MAJOR_THICKNESS_PT = 0.6
+
+
+def mm_to_px(mm):
+    """Convert millimeters to pixels at DPI."""
+    return round(mm * DPI / MM_PER_INCH)
+
+
+def pt_to_px(pt):
+    """Convert points to pixels at DPI."""
+    return pt * DPI / 72
+
+
+# ── Grid rendering ───────────────────────────────────────────
+
+def generate_graph(paper, minor_hex, major_hex):
+    """Render a graph-paper PNG and return the PIL Image."""
+    w_mm, h_mm = PAPER_SIZES[paper]
+    w_px, h_px = mm_to_px(w_mm), mm_to_px(h_mm)
+
+    minor_color = f"#{minor_hex}"
+    major_color = f"#{major_hex}"
+
+    img = Image.new("RGBA", (w_px, h_px), (255, 255, 255, 255))
+    draw = ImageDraw.Draw(img)
+
+    minor_spacing_px = MINOR_SPACING_MM * DPI / MM_PER_INCH
+    minor_thickness = max(1, round(pt_to_px(MINOR_THICKNESS_PT)))
+    major_thickness = max(1, round(pt_to_px(MAJOR_THICKNESS_PT)))
+
+    major_every = round(MAJOR_SPACING_MM / MINOR_SPACING_MM)  # 3
+
+    # Draw horizontal lines
+    rows = int(h_px / minor_spacing_px) + 1
+    for row in range(rows):
+        cy = round(row * minor_spacing_px)
+        if cy >= h_px:
+            continue
+
+        is_major = (row % major_every == 0)
+        thickness = major_thickness if is_major else minor_thickness
+        color = major_color if is_major else minor_color
+
+        half = thickness / 2
+        y0 = round(cy - half)
+        y1 = round(cy + half)
+        if y1 <= y0:
+            y1 = y0 + 1
+
+        draw.rectangle([0, y0, w_px - 1, y1], fill=color)
+
+    # Draw vertical lines
+    cols = int(w_px / minor_spacing_px) + 1
+    for col in range(cols):
+        cx = round(col * minor_spacing_px)
+        if cx >= w_px:
+            continue
+
+        is_major = (col % major_every == 0)
+        thickness = major_thickness if is_major else minor_thickness
+        color = major_color if is_major else minor_color
+
+        half = thickness / 2
+        x0 = round(cx - half)
+        x1 = round(cx + half)
+        if x1 <= x0:
+            x1 = x0 + 1
+
+        draw.rectangle([x0, 0, x1, h_px - 1], fill=color)
+
+    # Flatten to RGB
+    result = Image.new("RGB", (w_px, h_px), (255, 255, 255))
+    result.paste(img, mask=img.split()[3])
+    return result
+
+
+# ── Caching ───────────────────────────────────────────────────
+
+def cache_key(paper, minor_hex, major_hex):
+    """Deterministic hash for a (paper, minor, major) triple."""
+    blob = f"{paper}:{minor_hex}:{major_hex}".encode()
+    return hashlib.sha256(blob).hexdigest()[:16]
+
+
+def cache_dir():
+    """Resolve the cache directory (respects $ANVIL_GRID_CACHE)."""
+    d = os.environ.get("ANVIL_GRID_CACHE", "")
+    if not d:
+        d = os.path.join(os.path.expanduser("~"), ".cache", "anvil", "grids")
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+# ── CLI ───────────────────────────────────────────────────────
+
+def main():
+    if len(sys.argv) != 4:
+        print(
+            f"Usage: {os.path.basename(sys.argv[0])} <paper-size> <minor-hex> <major-hex>\n"
+            f"Paper sizes: {', '.join(sorted(PAPER_SIZES))}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    paper = sys.argv[1].lower()
+    minor_hex = sys.argv[2].upper().lstrip("#")
+    major_hex = sys.argv[3].upper().lstrip("#")
+
+    if paper not in PAPER_SIZES:
+        print(
+            f"Error: unknown paper size '{paper}'. "
+            f"Valid: {', '.join(sorted(PAPER_SIZES))}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    key = cache_key(paper, minor_hex, major_hex)
+    out_path = os.path.join(cache_dir(), f"graph-{paper}-{key}.png")
+
+    if os.path.isfile(out_path):
+        print(out_path)
+        sys.exit(0)
+
+    img = generate_graph(paper, minor_hex, major_hex)
+    img.save(out_path, "PNG", dpi=(DPI, DPI), optimize=True)
+    print(out_path)
+
+
+if __name__ == "__main__":
+    main()
