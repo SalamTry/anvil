@@ -167,8 +167,23 @@ fi
 if ! $NO_PRINT; then
   PRINTER=$(lpstat -d 2>/dev/null | sed 's/.*: //' || true)
   if [[ -n "$PRINTER" ]]; then
-    lp -d "$PRINTER" -o media="${PAPER_MEDIA}" "$OUTPUT_PDF"
-    echo "  Sent to printer: $PRINTER"
+    LP_OUTPUT=$(lp -d "$PRINTER" -o media="${PAPER_MEDIA}" "$OUTPUT_PDF" 2>&1)
+    JOB_ID=$(echo "$LP_OUTPUT" | grep -o '[^ ]*-[0-9]*' | head -1)
+    echo "  Sent to printer: $PRINTER (job $JOB_ID)"
+
+    # Wait for the print job to complete
+    PRINT_TIMEOUT=120
+    POLL_INTERVAL=2
+    ELAPSED=0
+    while lpstat 2>/dev/null | grep -q "$JOB_ID"; do
+      sleep "$POLL_INTERVAL"
+      ELAPSED=$((ELAPSED + POLL_INTERVAL))
+      if [[ $ELAPSED -ge $PRINT_TIMEOUT ]]; then
+        echo "  ⚠ Timeout: job $JOB_ID still in queue after ${PRINT_TIMEOUT}s"
+        exit 2
+      fi
+    done
+    echo "  ✓ Printed on $PRINTER"
   else
     echo "  ⚠ No default printer set. Use: lpadmin -d <printer-name>"
     echo "  PDF saved — print manually or set up printer first."
