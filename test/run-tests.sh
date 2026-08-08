@@ -557,6 +557,63 @@ should_run "theme-contract" && {
   fi
 }
 
+should_run "grid-embedded" && {
+  echo "[43] Grid background: dot theme PDF contains embedded image"
+  echo "0" > "$PRINT_DIR/.entry-counter"
+  local today=$(date +%Y-%m-%d)
+  rm -f "$PRINT_DIR/output/001-basic-${today}.pdf"
+  $DEEPPRINT --no-print --theme=dot "$FIXTURES/basic.md" >/dev/null 2>&1
+  local pdf="$PRINT_DIR/output/001-basic-${today}.pdf"
+  if [[ ! -f "$pdf" ]]; then
+    fail "dot theme PDF not rendered"
+  else
+    local img_count=$(pdfimages -list "$pdf" 2>/dev/null | grep -c 'image' || true)
+    if [[ "$img_count" -ge 1 ]]; then
+      pass "dot theme PDF has embedded grid image ($img_count)"
+    else
+      fail "dot theme PDF has NO embedded images — grid background missing"
+    fi
+  fi
+}
+
+should_run "grid-embedded-lined" && {
+  echo "[44] Grid background: lined theme PDF contains embedded image"
+  echo "0" > "$PRINT_DIR/.entry-counter"
+  local today=$(date +%Y-%m-%d)
+  rm -f "$PRINT_DIR/output/001-basic-${today}.pdf"
+  $DEEPPRINT --no-print --theme=lined "$FIXTURES/basic.md" >/dev/null 2>&1
+  local pdf="$PRINT_DIR/output/001-basic-${today}.pdf"
+  if [[ ! -f "$pdf" ]]; then
+    fail "lined theme PDF not rendered"
+  else
+    local img_count=$(pdfimages -list "$pdf" 2>/dev/null | grep -c 'image' || true)
+    if [[ "$img_count" -ge 1 ]]; then
+      pass "lined theme PDF has embedded grid image ($img_count)"
+    else
+      fail "lined theme PDF has NO embedded images — grid background missing"
+    fi
+  fi
+}
+
+should_run "grid-not-embedded-blank" && {
+  echo "[45] Grid background: blank theme PDF has NO embedded image"
+  echo "0" > "$PRINT_DIR/.entry-counter"
+  local today=$(date +%Y-%m-%d)
+  rm -f "$PRINT_DIR/output/001-basic-${today}.pdf"
+  $DEEPPRINT --no-print --theme=blank "$FIXTURES/basic.md" >/dev/null 2>&1
+  local pdf="$PRINT_DIR/output/001-basic-${today}.pdf"
+  if [[ ! -f "$pdf" ]]; then
+    fail "blank theme PDF not rendered"
+  else
+    local img_count=$(pdfimages -list "$pdf" 2>/dev/null | grep -c 'image' || true)
+    if [[ "$img_count" -eq 0 ]]; then
+      pass "blank theme PDF correctly has no embedded images"
+    else
+      fail "blank theme PDF unexpectedly has $img_count embedded images"
+    fi
+  fi
+}
+
 should_run "theme-blank" && {
   echo "[29] Theme: blank renders valid PDF (A5)"
   png=$(render "$FIXTURES/basic.md" "blank-a5" "--theme=blank")
