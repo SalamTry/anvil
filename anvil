@@ -194,7 +194,7 @@ pandoc \
   -V paper-margin="$PAPER_MARGIN" \
   -V paper-top="$PAPER_TOP" \
   -V paper-bottom="$PAPER_BOTTOM" \
-  ${GRID_PNG:+-V grid-bg="$GRID_PNG"} \
+  ${GRID_PNG:+-V} ${GRID_PNG:+grid-bg="$GRID_PNG"} \
   -o "$OUTPUT_PDF" \
   <<< "$MARKDOWN"
 
